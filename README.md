@@ -4,13 +4,13 @@
 Examining data similarities across stock/commodity/money markets. Applying the results to predict possible paths of a given stock.
 
 ## Table of Contents
-* [Techniques Used](https://github.com/mglush/market-analysis/blob/main/README.md#techniques-used)
-* [Technologies Used](https://github.com/mglush/market-analysis/blob/main/README.md#technologies-used)
+* [Approach](https://github.com/mglush/market-analysis/blob/main/README.md#approaches)
+* [Technologies](https://github.com/mglush/market-analysis/blob/main/README.md#technologies)
 * [Sources](https://github.com/mglush/market-analysis/blob/main/README.md#sources)
 
-## Techniques Used
+## Approach
 
-## Technologies Used
+## Technologies
 * TD Ameritrade API.
 * Python (libraries include *requests*, *json*, *datetime*, *pandas*, *umap*, *matplotlib*).
 
