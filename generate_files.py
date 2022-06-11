@@ -12,7 +12,7 @@ class TdPriceHistory():
     Utility class that will be used to interract with the
     TD Ameritrade API endpoints and pool historical price data
     for every ticker in the s&p 500, nasdaq, and dow jones.
-    
+
     Additionally, contains a create_files method that creates two files for every
     ticker mentioned above, with the first file containing data returned by
     the get request in json format, and the second file containing a dataframe
@@ -173,13 +173,8 @@ class TdPriceHistory():
         counter = 1
         for historical_data in data_list:
             if len(historical_data['candles']) > 20:    
-                csv_filename = './data/' +  candle_timeframe +  '/' + historical_data['symbol'].lower() + '.csv'
-                json_filename = './data/' +  candle_timeframe +  '/' + historical_data['symbol'].lower() + '.json'
-                
-                historical_data = pd.DataFrame(historical_data['candles'])
-                historical_data.to_csv(csv_filename, encoding='utf-8')
-
                 try:
+                    json_filename = './data/' +  candle_timeframe +  '/' + historical_data['symbol'].lower() + '.json'
                     file = open(json_filename, encoding='utf-8')
                     file.write(historical_data)
                     file.close()
