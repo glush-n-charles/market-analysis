@@ -2,7 +2,7 @@
 #### Dimensionality Reduction and Markov Chains
 ###### By Michael Glushchenko
 
-Examining data similarities across stock/commodity/money markets. Applying the results to predict possible paths of a given stock.
+Examining data similarities across stock/commodity/money markets. Using techniques of dimensionality reduction, noise reduction, and stochastic processes to identify patterns in a given chart of data. Applying the results to predict possible paths of a user-inputted stock symbol.
 
 ## Table of Contents
 * [Approach](https://github.com/mglush/market-analysis/blob/main/README.md#approaches)
