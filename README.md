@@ -5,17 +5,16 @@
 Examining data similarities across stock/commodity/money markets. Using techniques of dimensionality reduction, noise reduction, and stochastic processes to identify patterns in a given chart of data. Applying the results to predict possible paths of a user-inputted stock symbol.
 
 ## Table of Contents
-* [Approach](https://github.com/mglush/market-analysis/blob/main/README.md#approaches)
+* [How to Run](https://github.com/mglush/market-analysis/blob/main/README.md#how-to-run)
 * [Technologies](https://github.com/mglush/market-analysis/blob/main/README.md#technologies)
 * [Sources](https://github.com/mglush/market-analysis/blob/main/README.md#sources)
 
-## Approach
-* First, we choose to focus on stocks in the S&P500, the Nasdaq, and the Dow Jones.
-  * We use the TD Ameritrade API and scrap all historical data the API has about stocks in the above indices.
-  * Initially, the data collected includes 20 years of daily high, low, open, close, and volume data points, as well as 10 days of by the minute data.
+## How to Run
+Not ready to run.
 
 ## Technologies
 * TD Ameritrade API.
+* Yahoo Finance API.
 * Python (libraries include *requests*, *json*, *datetime*, *pandas*, *umap*, *matplotlib*).
 
 ## Sources
