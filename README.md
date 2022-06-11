@@ -16,5 +16,6 @@ Examining data similarities across stock/commodity/money markets. Applying the r
 
 ## Sources
 * [Umap How To](https://umap-learn.readthedocs.io/en/latest/index.html)
+* [Yahoo Finance](https://levelup.gitconnected.com/how-to-get-all-stock-symbols-a73925c16a1b)
 
 2022 &copy; Michael Glushchenko, Charles Delapa
