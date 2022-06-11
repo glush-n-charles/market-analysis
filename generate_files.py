@@ -9,14 +9,22 @@ CONSUMER_KEY = 'UCJA7GWHIKKXO2G69GXDMEFUX24QZ0PD'
 
 class TdPriceHistory():
     '''
-    Utility class that will be used to interract with the
-    TD Ameritrade API endpoints and pool historical price data
-    for every ticker in the s&p 500, nasdaq, and dow jones.
+    DESCRIPTION: Utility class that can be used to interract with
+    the TD Ameritrade API endpoints and to pool historical price
+    data for every ticker in the s&p 500, nasdaq, and dow jones.
+    
+    NOTES: contains a create_file method that can be used
+    to create a json-format file of a given ticker's data.
+    contains a create_files method that will create a file
+    for every ticker symbol mentioned above.
 
-    Additionally, contains a create_files method that creates two files for every
-    ticker mentioned above, with the first file containing data returned by
-    the get request in json format, and the second file containing a dataframe
-    of the data that the get request returned.
+    RUNNING FILE DIRECTLY will create two files
+    for each ticker mentioned above, with the first file
+    containing the last 20 years of daily data and the
+    second file containing last 10 days of minute data.
+
+    USING CLASS AS AN IMPORT will provide utility
+    without running file creation automatically.
     '''
     endpoint = 'https://api.tdameritrade.com/v1/marketdata/{ticker}/pricehistory'
     apikey = ''
@@ -44,13 +52,13 @@ class TdPriceHistory():
 
         symbols = set.union( sym1, sym2, sym3 )
         avoid_endings = ['W', 'R', 'P', 'Q']
-        sav_set = set()
+        save = set()
 
         for symbol in symbols:
             if not (len(symbol) > 4 and symbol[-1] in avoid_endings) and symbol != '':
-                sav_set.add(symbol)
+                save.add(symbol)
 
-        return sav_set
+        return save
 
     def get_endpoint_data(self, endpoint, params):
         '''
@@ -126,7 +134,7 @@ class TdPriceHistory():
         results = []
         for item in self.get_tickers_set():
             if len(results) % 120 == 119 and frequency_type == 'minute':
-                time.sleep(7)
+                time.sleep(10)
 
             result = self.get_endpoint_data(self.endpoint.format(ticker=item.upper()), params)
             if result is None:
@@ -136,7 +144,7 @@ class TdPriceHistory():
                 results.append(result)
                 print('... ACQUIRED DATA #' + str(len(results)) + ' SUCCESSFULLY.')
             else:
-                print('... FAILED.')
+                print('... FAILED, NO DATA AT THIS LINK, CHECK PARAMETERS.')
         return results
 
     def create_file(self, ticker, data, candle_timeframe):
@@ -187,11 +195,11 @@ class TdPriceHistory():
 def run_td_api():
     '''
     Creates a Td class and calls its create_files() function. Could use
-    the createFile() function inside of get_tickers(), but I kept get_tickers
-    from making any files so that function can be used for getting ticker info.
+    the createFile() function inside of get_tickers(), bu get_tickers() is kept
+    from making any files so that the function can be used for getting ticker info.
 
     Input: none.
-    Output: none, new files created in the data/daily and data/minute folders.
+    Output: none, new files created/overwritten in the data/daily and data/minute folders.
     '''
     api_utility = TdPriceHistory()
 
