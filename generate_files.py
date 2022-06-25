@@ -1,9 +1,15 @@
-from yahoo_fin import stock_info as si
-import requests
-import json
-from datetime import datetime
-import pandas as pd
-import time
+'''
+generate_files.py
+Michael Glushchenko
+
+'''
+import json                             # pylint: disable=import-error
+import time                             # pylint: disable=import-error
+import os                               # pylint: disable=import-error
+from datetime import datetime           # pylint: disable=import-error
+from yahoo_fin import stock_info as si  # pylint: disable=import-error
+import requests                         # pylint: disable=import-error
+import pandas as pd                     # pylint: disable=import-error
 
 CONSUMER_KEY = 'UCJA7GWHIKKXO2G69GXDMEFUX24QZ0PD'
 
@@ -38,19 +44,22 @@ class TdPriceHistory():
     def get_tickers_set(self):
         '''
         Gets all stock tickers in sp500, nasdaq, and dow indices.
+        Also get all stocks in the yahoo 'other' category.
 
         Input: none.
         Output: a set containing ticker symbols that exist on yahoo finance.
         '''
-        df1 = pd.DataFrame( si.tickers_sp500() )
-        df2 = pd.DataFrame( si.tickers_nasdaq() )
-        df3 = pd.DataFrame( si.tickers_dow() )
+        df1 = pd.DataFrame(si.tickers_sp500())
+        df2 = pd.DataFrame(si.tickers_nasdaq())
+        df3 = pd.DataFrame(si.tickers_dow())
+        df4 = pd.DataFrame(si.tickers_other())
 
         sym1 = set( symbol for symbol in df1[0].values.tolist() )
         sym2 = set( symbol for symbol in df2[0].values.tolist() )
         sym3 = set( symbol for symbol in df3[0].values.tolist() )
+        sym4 = set( symbol for symbol in df4[0].values.tolist() )
 
-        symbols = set.union( sym1, sym2, sym3 )
+        symbols = set.union( sym1, sym2, sym3, sym4 )
         avoid_endings = ['W', 'R', 'P', 'Q']
         save = set()
 
@@ -96,7 +105,21 @@ class TdPriceHistory():
         '''
         Uses get_endpoint_data() on a single ticker symbol.
 
-        Input: string containing the symbol of a ticker.
+        Input: string containing the symbol of a ticker, as well as the API
+                parameters that will be used.
+                period_type values: day, month, year, ytd.
+                period values (by petiod type): day: 1, 2, 3, 4, 5, 10
+                                                month: 1, 2, 3, 6
+                                                year: 1, 2, 3, 5, 10, 15, 20
+                                                ytd: 1
+                frequency type values (by period type): day: minute*
+                                                        month: daily, weekly
+                                                        year: daily, weekly, monthly
+                                                        ytd: daily, weekly
+                frequency values (by frequency type): minute: 1, 5, 10, 15, 30
+                                                      daily: 1
+                                                      weekly: 1
+                                                      monthly: 1
         Output: if request successful: returns a single dictionary containing
                 the high, low, open, close, volume, and datetime columns
                 for a given ticker in set returned by get_tickers_set().
@@ -118,10 +141,21 @@ class TdPriceHistory():
     def get_tickers(self, period_type, period, frequency_type, frequency):
         '''
         Uses get_endpoint_data() on every ticker symbol in set returned by get_tickers_set().
-        Before returning a value, function uses write_to_file to create a
-        csv file of a dataframe containing the data that has just been pulled.
 
-        Input: none.
+        Input: api parameters for the given search.
+                period_type values: day, month, year, ytd.
+                period values (by petiod type): day: 1, 2, 3, 4, 5, 10
+                                                month: 1, 2, 3, 6
+                                                year: 1, 2, 3, 5, 10, 15, 20
+                                                ytd: 1
+                frequency type values (by period type): day: minute*
+                                                        month: daily, weekly
+                                                        year: daily, weekly, monthly
+                                                        ytd: daily, weekly
+                frequency values (by frequency type): minute: 1, 5, 10, 15, 30
+                                                      daily: 1
+                                                      weekly: 1
+                                                      monthly: 1
         Output: returns a list of dictionaries, each dictionary containing
                 the high, low, open, close, volume, and datetime columns
                 for each given ticker in the set returned by get_tickers_set().
@@ -150,16 +184,11 @@ class TdPriceHistory():
     def create_file(self, ticker, data, candle_timeframe):
         '''
         Saves historical data pulled from the API to a local file titled with the ticker's symbol.
-        In the first file, a dictionary is stored, and the file is in json format.
-        In the second file, a dataframe is stored, and the file in csv format.
+        A dictionary is stored within a json format file.
 
         Input: a dictionary returned by get_endpoint_data().
         Output: none, two new file re created for every stock ticker in the get_tickers_set().
         '''
-        csv_filename = './data/' +  candle_timeframe +  '/' + ticker.lower() + '.csv'
-        df_data = pd.DataFrame(data['candles'])
-        df_data.to_csv(csv_filename, encoding='utf-8')
-
         try:
             json_filename = './data/' +  candle_timeframe +  '/' + ticker.lower() + '.json'
             file = open(json_filename, 'w', encoding='utf-8')
@@ -172,25 +201,49 @@ class TdPriceHistory():
         '''
         Saves historical data pulled from the API to a local file titled with the ticker's symbol.
         In the first file, a dictionary is stored, and the file is in json format.
-        In the second file, a dataframe is stored, and the file in csv format.
         Files are not created for data containing less than 20 data points.
+        If file already exists, a call to update_file is made instead.
 
-        Input: a dictionary returned by get_endpoint_data().
-        Output: none, two new file re created for every stock ticker in the get_tickers_set().
+        Input: a dictionary returned by get_endpoint_data(), and the timeframe of each candle.
+        Output: none, a new file is created for every stock ticker in the get_tickers_set().
         '''
-        counter = 1
+        steps = 1
         for historical_data in data_list:
             if len(historical_data['candles']) > 20:    
                 try:
                     json_filename = './data/' +  candle_timeframe +  '/' + historical_data['symbol'].lower() + '.json'
-                    file = open(json_filename, encoding='utf-8')
+                    file = open(json_filename, encoding='utf-8', mode='x')
                     file.write(historical_data)
                     file.close()
-                except OSError as file_error:
-                    print(file_error)
+                    print('>>>WROTE NEW FILE ' + str(json_filename) + '.')
+                except OSError as file_error:  # pylint: disable=unused-variable
+                    self.update_file(json_filename, historical_data)
+                
+                print('>>>FINISHED STEP #' + str(steps) + '.')
+                steps = steps + 1
 
-                print('>>>FINISHED WRITING TO FILE #' + str(counter) + '.')
-                counter = counter + 1
+    def update_file(self, filename, data):
+        '''
+        Updates data of existing file by appending everything
+        that is not already in the file but is in the data parameter.
+
+        Input: filename := path to existing file to be updated.
+        Output: none, a file is updated according to the description above.
+        '''
+        try:
+            file = open(filename, encoding='utf-8', mode='a')
+            
+            old_data = set(line.strip() for line in file)
+            overlap = set(line for line in data).intersection(old_data)
+            new_data = data - overlap
+            
+            file.write(new_data)
+            file.close()
+        except OSError as file_error:
+            print(file_error)
+        print('>>>UPDATED FILE ' + str(filename) + '.')
+
+
 
 def run_td_api():
     '''
