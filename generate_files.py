@@ -3,10 +3,9 @@ generate_files.py
 Michael Glushchenko
 
 '''
-import json                             # pylint: disable=import-error
 import time                             # pylint: disable=import-error
-import os                               # pylint: disable=import-error
 from datetime import datetime           # pylint: disable=import-error
+import ujson as json                    # pylint: disable=import-error
 from yahoo_fin import stock_info as si  # pylint: disable=import-error
 import requests                         # pylint: disable=import-error
 import pandas as pd                     # pylint: disable=import-error
@@ -191,8 +190,8 @@ class TdPriceHistory():
         '''
         try:
             json_filename = './data/' +  candle_timeframe +  '/' + ticker.lower() + '.json'
-            file = open(json_filename, 'w', encoding='utf-8')
-            file.write(json.dumps(data))
+            file = open(json_filename, 'w', encoding='utf-8', mode='x')
+            json.dump(data['candles'], file, indent=4)
             file.close()
         except OSError as file_error:
             print(file_error)
@@ -208,61 +207,56 @@ class TdPriceHistory():
         Output: none, a new file is created for every stock ticker in the get_tickers_set().
         '''
         steps = 1
-        for historical_data in data_list:
-            if len(historical_data['candles']) > 20:    
+        for data in data_list:
+            if len(data['candles']) > 20:    
                 try:
-                    json_filename = './data/' +  candle_timeframe +  '/' + historical_data['symbol'].lower() + '.json'
+                    json_filename = './data/' +  candle_timeframe +  '/' + data['symbol'].lower() + '.json'
                     file = open(json_filename, encoding='utf-8', mode='x')
-                    file.write(historical_data)
+                    json.dump(data['candles'], file, indent=4)
                     file.close()
                     print('>>>WROTE NEW FILE ' + str(json_filename) + '.')
-                except OSError as file_error:  # pylint: disable=unused-variable
-                    self.update_file(json_filename, historical_data)
-                
+                except OSError:
+                    pass # STUB STUB STUB
+
                 print('>>>FINISHED STEP #' + str(steps) + '.')
                 steps = steps + 1
 
-    def update_file(self, filename, data):
+    def update_file(self, ticker, period_type, period, frequency_type, frequency):
         '''
-        Updates data of existing file by appending everything
+        If file exists, updates data of existing file by appending everything
         that is not already in the file but is in the data parameter.
-
-        Input: filename := path to existing file to be updated.
-        Output: none, a file is updated according to the description above.
+        Otherwise, creates the file first, then writes data to it.
         '''
+        filename = './data/' + str(frequency_type) + '/' + str(ticker).lower() + '.json'
         try:
-            file = open(filename, encoding='utf-8', mode='a')
-            
-            old_data = set(line.strip() for line in file)
-            overlap = set(line for line in data).intersection(old_data)
-            new_data = data - overlap
-            
-            file.write(new_data)
+            file = open(filename, encoding='utf-8', mode='r')
+            data = json.load(file)
             file.close()
-        except OSError as file_error:
-            print(file_error)
-        print('>>>UPDATED FILE ' + str(filename) + '.')
+        except OSError:
+            print('>>>FILE DOES NOT EXIST, CREATING NEW FILE.')
+            data = []
 
+        old_dates = set(item['datetime'] for item in data)
+        testing = self.get_ticker(ticker.lower(), period_type, period, frequency_type, frequency)['candles']
 
+        for item in testing:
+            if item['datetime'] not in old_dates:
+                data.append(item)
 
-def run_td_api():
-    '''
-    Creates a Td class and calls its create_files() function. Could use
-    the createFile() function inside of get_tickers(), bu get_tickers() is kept
-    from making any files so that the function can be used for getting ticker info.
+        try:
+            file = open(filename, encoding='utf-8', mode='w')
+            data = json.dump(data, file, indent=4)
+            file.close()
+            print('>>>SUCCESSFULLY WROTE TO FILE ' + str(filename) + '.')
+        except OSError:
+            print('>>>FAILED TO WRITE TO FILE.')
 
-    Input: none.
-    Output: none, new files created/overwritten in the data/daily and data/minute folders.
-    '''
-    api_utility = TdPriceHistory()
-
-    daily_data = api_utility.get_tickers('year', 20, 'daily', 1)
-    minute_data = api_utility.get_tickers('day', 10, 'minute', 1)
-
-    api_utility.create_files(daily_data, 'daily')
-    api_utility.create_files(minute_data, 'minute')
-
-    print('\n>>>File creation complete.')
-
-if __name__ == '__main__':
-    run_td_api()
+    def update_files(self, period_type, period, frequency_type, frequency):
+        '''
+        Creates/updates all files in the list of tickers returned
+        by the get_tickers_set method.
+        '''
+        tickers = self.get_tickers_set()
+        for ticker in tickers:
+            self.update_file(ticker, period_type, period, frequency_type, frequency)
+        print('>>>ALL FILES SUCCESSFULLY UPDATED')
