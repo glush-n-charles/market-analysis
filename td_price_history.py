@@ -1,28 +1,43 @@
 '''
-TdPriceHistory.py
+td_price_history.py
 Michael Glushchenko
-
 '''
-import os                               # pylint: disable=import-error
-import time                             # pylint: disable=import-error
-from datetime import datetime           # pylint: disable=import-error
-import ujson as json                    # pylint: disable=import-error
-from yahoo_fin import stock_info as si  # pylint: disable=import-error
-import requests                         # pylint: disable=import-error
-import pandas as pd                     # pylint: disable=import-error
 
-CONSUMER_KEY = 'UCJA7GWHIKKXO2G69GXDMEFUX24QZ0PD'
+import os
+import time
+import multiprocessing as mp
+from datetime import datetime
+from tqdm import tqdm
+import ujson as json
+from yahoo_fin import stock_info as si
+import requests
+import pandas as pd
+
+CONSUMER_KEYS = ['UCJA7GWHIKKXO2G69GXDMEFUX24QZ0PD',
+                 'NJVFPDOUVIVOCGLTOETENI5WOLKWBJ3B',
+                 'I346SQV6CXH5FEQ2I8HCZNFH2Z556AH4',
+                 'GQ4MAKWOMBSGGRJ91RNZEE6THVGRJAJD',
+                 'HWO3NCQY5YB9TESIGPKPIICIKV0CKSYF',
+                 'XWNWIEGUKAGUYBJ1AILZZTGGRIOS7RRV',
+                 'WQKJUI07MWEVTAII5FDXUBLVNFPKMOAG',
+                 'S2D28UJPGEOFKEN5FA9PKXLTPAQG0VEF',
+                 'LMRHF8LMP3EA5N64WTOL0OFPOGDPKNVF',
+                 'U3HWMIJOUAROHJFAIG4WTZUDS833TVUG',
+                 'IUNOMMPZT5ESPREYGDIPUJ6TYYFGXNFZ']
+KEY = CONSUMER_KEYS[0]
+PROCESSES_TO_USE = len(CONSUMER_KEYS)
+PROGRESS_BAR = tqdm(range(int(11000 / PROCESSES_TO_USE)))
 
 class TdPriceHistory():
     '''
-    DESCRIPTION: Utility class that can be used to interract with
+    Utility class that can be used to interract with
     the TD Ameritrade API endpoints and to pool historical price
     data for every ticker in the s&p 500, nasdaq, and dow jones, and more.
     '''
     endpoint = 'https://api.tdameritrade.com/v1/marketdata/{ticker}/pricehistory'
     apikey = ''
 
-    def __init__(self, apikey=CONSUMER_KEY):
+    def __init__(self, apikey=KEY):
         '''
         Initializes the endpoint and the api key that will be used (if user wants to specify one).
         '''
@@ -62,7 +77,6 @@ class TdPriceHistory():
                 high, low, open, close, volume, and datetime columns
                 returns none otherwise.
         '''
-        print('>>>GETTING DATA FROM ' + str(endpoint), end='')
         try:
             page = requests.get(url=endpoint, params=params)
         except requests.RequestException as request_exception:
@@ -71,7 +85,11 @@ class TdPriceHistory():
         if page.status_code == 200:
             return json.loads(page.content)
 
-        print('>>>BAD REQUEST ERROR. PAGE STATUS = ' + str(page.status_code))
+        if page.status_code == 429:
+            time.sleep(1)
+            return self.get_endpoint_data(endpoint, params)
+
+        print(f'>>>BAD REQUEST ERROR FROM {str(endpoint)}.\nPAGE STATUS = {str(page.status_code)}')
         return None
 
     def reformat_dates(self, content):
@@ -84,7 +102,7 @@ class TdPriceHistory():
         for item in content['candles']:
             item['datetime'] = datetime.utcfromtimestamp(item['datetime'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
 
-    def get_ticker(self, ticker, period_type, period, frequency_type, frequency):
+    def get_ticker(self, ticker, period_type, period, frequency_type, frequency, key=KEY):
         '''
         Uses get_endpoint_data() on a single ticker symbol.
 
@@ -108,22 +126,22 @@ class TdPriceHistory():
                 for a given ticker in set returned by get_tickers_set().
                 returns none otherwise.
         '''
-        params = {'apikey' : self.apikey,
+        params = {'apikey' : key,
                         'periodType' : period_type,
                         'period' : period,
                         'frequencyType' : frequency_type,
                         'frequency' : frequency}
 
         result = self.get_endpoint_data(self.endpoint.format(ticker=ticker.upper()), params)
+
         if result is None:
-            print('... ENCOUNTERED ERROR ON THIS PAGE.')
+            print(f'... ENCOUNTERED ERROR TRYING TO GET {ticker} DATA.')
             return None
         elif not result['empty']:
             self.reformat_dates(result)
-            print('... ACQUIRED DATA SUCCESSFULLY.')
             return result
         else:
-            print('... NO DATA AT THIS LINK, CHECK PARAMETERS.')
+            # print(f'... NO DATA FOR {ticker}, CHECK PARAMETERS.')
             return None
 
     def get_tickers(self, period_type, period, frequency_type, frequency):
@@ -150,13 +168,10 @@ class TdPriceHistory():
         '''
         results = []
         for item in self.get_tickers_set():
-            if len(results) % 120 == 119 and frequency_type == 'minute':
-                time.sleep(10)
-
             result = self.get_ticker(item, period_type, period, frequency_type, frequency)
             if result is not None:
                 results.append(result)
-            
+
         return results
 
     def change_file_format(self, file, timeframe):
@@ -170,7 +185,7 @@ class TdPriceHistory():
             file = open(filename, encoding='utf-8', mode='r')
             data = json.load(file)
             file.close()
-            
+
             out_file = open(filename, encoding='utf-8', mode='w')
             json.dump(data['candles'], out_file, indent=4)
             out_file.close()
@@ -187,7 +202,7 @@ class TdPriceHistory():
                 self.change_file_format(path, timeframe)
         print('>>>SUCCESSFULLY CHANGED FORMAT OF FILES.')
 
-    def update_file(self, ticker, period_type, period, frequency_type, frequency):
+    def update_file(self, ticker, period_type, period, frequency_type, frequency, key=KEY):
         '''
         If file exists, updates data of existing file by appending everything
         that is not already in the file but is in the data parameter.
@@ -199,38 +214,35 @@ class TdPriceHistory():
             file = open(filename, encoding='utf-8', mode='r')
             data = json.load(file)
             file.close()
-            try: 
+            try:
                 old_dates = set(item['datetime'] for item in data)
             except TypeError:
                 self.change_file_format(str(ticker).lower() + '.json', str(frequency_type))
-                
                 file = open(filename, encoding='utf-8', mode='r')
                 data = json.load(file)
                 file.close()
-                old_dates = set(item['datetime'] for item in data)
-
+                old_dates = set(item['datetime'] for item in data) if data is not None else set()
         except OSError:
-            print('>>>FILE DOES NOT EXIST.')
+            print(f'\n>>>FILE {ticker}.json DID NOT PREVIOUSLY EXIST... CREATING NEW ONE.')
             data = []
             old_dates = set()
 
-        testing = self.get_ticker(ticker.lower(), period_type, period, frequency_type, frequency)
+        testing = self.get_ticker(ticker, period_type, period, frequency_type, frequency, key)
 
         if testing is not None:
             testing = testing['candles']
             for item in testing:
-                if item['datetime'] not in old_dates:
+                if item is not None and item['datetime'] not in old_dates:
                     data.append(item)
-        else:
-            print('>>>ENDPOINT RETURNED NOTHING.')
 
         try:
             file = open(filename, encoding='utf-8', mode='w')
             data = json.dump(data, file, indent=4)
             file.close()
-            print('>>>SUCCESSFULLY WROTE TO FILE ' + str(filename) + '.')
         except OSError:
-            print('>>>FAILED TO WRITE TO FILE.')
+            print('\n>>>FAILED TO WRITE TO FILE.')
+
+        PROGRESS_BAR.update()
 
     def update_files(self, period_type, period, frequency_type, frequency):
         '''
@@ -238,12 +250,43 @@ class TdPriceHistory():
         by the get_tickers_set method.
         '''
         tickers = self.get_tickers_set()
-        counter = 1
         for ticker in tickers:
-            if counter % 120 == 119 and frequency_type == 'minute':
-                time.sleep(20)
-            if counter % 120 == 119 and frequency_type == 'daily':
-                time.sleep(10)
-            self.update_file(ticker, period_type, period, frequency_type, frequency)
-            counter = counter + 1
+            self.update_file(ticker.lower(), period_type, period, frequency_type, frequency)
         print('>>>ALL FILES SUCCESSFULLY UPDATED')
+
+    def update_files_parallel(self, tickers, period_type, period, frequency_type, frequency, key=KEY):
+        '''
+        Creates/updates all files in the list of tickers returned
+        by the get_tickers_set method.
+        '''
+        while True:
+            temp = tickers.get()
+            if temp == 'PROC_FINISHED':
+                print('>>>PROCESS FINISHED ITS WORK!!!')
+                break
+            self.update_file(temp, period_type, period, frequency_type, frequency, key)
+
+    def run_parallel_routine(self, tickers, period_type, period, frequency_type, frequency):
+        '''
+        Creates/updates all files in the list of tickers returned
+        by the get_tickers_set method using however many API keys
+        are available to split work amongst the cores the user has.
+        '''
+        queue = mp.Queue()
+        for ticker in tickers:
+            queue.put(ticker)
+        for i in range(PROCESSES_TO_USE):
+            queue.put('PROC_FINISHED')
+
+        processes = []
+        for i in range(PROCESSES_TO_USE):
+            proc = mp.Process(target=self.update_files_parallel, args=(queue, period_type, period, frequency_type, frequency, CONSUMER_KEYS[i], ))
+            proc.start()
+            processes.append(proc)
+
+        for proc in processes:
+            proc.join()
+        for proc in processes:
+            proc.kill()
+
+        print('>>>FINISHED RUNNING ON ALL PROCESSES!!!')

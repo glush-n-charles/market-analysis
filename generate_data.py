@@ -2,7 +2,7 @@
 File that runs the update files routine.
 '''
 
-from TdPriceHistory import TdPriceHistory as Td
+from td_price_history import TdPriceHistory as Td
 
 if __name__ == '__main__':
     util = Td()
