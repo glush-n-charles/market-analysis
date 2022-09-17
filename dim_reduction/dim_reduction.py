@@ -1,3 +1,15 @@
+'''
+dim_reduction.py
+
+Roughly testing out different parameters of UMAP to see
+what difference they make for our data.
+
+Studying the effect of the amount of data provided as input
+on the results of the UMAP (Uniform Manifold Approximation & Projection) output.
+
+File will need to be rewritten much more neatly...
+'''
+
 import umap.umap_ as umap
 from sklearn.cluster import KMeans
 import time
