@@ -1,9 +1,11 @@
 '''
 utils.py
-By Michael Glushchenko.
+Code by Charles Delapa.
 
-THIS FILE CONTAINS UTILITY FUNCTIONS USED FOR PROCESSING
-DATA INSIDE EACH OF THE FILES IN THE /DATA/MINUTE FOLDER.
+Comment from Michael Glushchenko: CHARLIE FOR THE LOVE OF GOD WRITE SOME COMMENTS HERE!!!
+
+This file contains utility functions used for processing
+data inside each of the files in the ./data folder.
 '''
 
 PATTERN_SIZE = 1000
