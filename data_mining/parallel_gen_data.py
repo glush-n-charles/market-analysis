@@ -1,5 +1,7 @@
 '''
-generate data for our file system, using as many processes as there are API keys available.
+run this file to create and/or update the stock data file system,
+using as many processes as there are API keys available
+(since the API limits us to 2 requests per second per API key).
 '''
 
 import time
@@ -17,10 +19,8 @@ if __name__ == "__main__":
     print(f'>>>STARTING UPDATING FILES IN PARALLEL USING {PROCESSES_TO_USE} PROCESSES\n')
 
     util = Td()
-
     tickerz = util.get_tickers_set()
-
-    fastest = (len(tickerz) / 120.0) / PROCESSES_TO_USE
+    
     min_time = time_it(util.run_parallel_routine, (tickerz, 'day', 10, 'minute', 1))
     day_time = time_it(util.run_parallel_routine, (tickerz, 'year', 20, 'daily', 1))
 
