@@ -22,7 +22,7 @@ The purpose of this project is to improve my data-science skills by aggregating 
 
 ## Files
 While the files contain self-explanatory code, this section briefly summarizes the purpose of each file.
-1. [https://github.com/mglush/data-aggregation)
+1. [Data Aggregation](https://github.com/mglush/data-aggregation)
 * Repository that we use to create financial data we work on throughout this project. More details can be found in the readme on the page linked.
 2. [dim_reduction/utils.py](https://github.com/glush-n-charles/market-analysis/blob/main/dim_reduction/utils.py)
 * Provides functions used in the pre-processing and data-cleaning part of the the project (functions that clean up the data, smooth it out, etc.).
