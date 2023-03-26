@@ -1,6 +1,6 @@
 # Market Analysis.
-## Data Aggregation, Dimensionality Reduction, and Continuous-Time Markov Chains.
-#### By Michael Glushchenko and Charles Delapa.
+### Data Aggregation, Dimensionality Reduction, and Continuous-Time Markov Chains.
+##### By Michael Glushchenko and Charles Delapa.
 
 ## Table of Contents
 * [Purpose](https://github.com/mglush/market-analysis/blob/main/README.md#purpose)
